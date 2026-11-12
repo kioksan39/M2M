@@ -845,6 +845,190 @@
                 function: "Беспроводная передача",
                 uses: "Wireless",
                 fullDescription: "Радиоволны разного диапазона используются для Wi-Fi, Bluetooth, мобильной связи."
+            },
+
+            // Дополнительные протоколы Layer 2 - Data Link
+            {
+                name: "HDLC",
+                layer: 2,
+                description: "Высокоуровневый протокол управления каналом данных. Используется в WAN сетях.",
+                port: "N/A",
+                function: "WAN связь",
+                uses: "Serial Lines",
+                fullDescription: "HDLC - это синхронный протокол передачи данных для соединений точка-точка. Часто используется на WAN линиях."
+            },
+            {
+                name: "Frame Relay",
+                layer: 2,
+                description: "Протокол коммутации пакетов для WAN. Снижает накладные расходы по сравнению с X.25.",
+                port: "N/A",
+                function: "WAN коммутация",
+                uses: "Virtual Circuits",
+                fullDescription: "Frame Relay обеспечивает коммутацию пакетов на канальном уровне с изменяемой скоростью."
+            },
+            {
+                name: "ATM",
+                layer: 2,
+                description: "Асинхронный режим передачи. Использует фиксированный размер ячеек для высокой скорости.",
+                port: "N/A",
+                function: "Высокоскоростная передача",
+                uses: "Physical Layer",
+                fullDescription: "ATM передаёт данные в виде фиксированных ячеек по 53 байта. Была популярна до Ethernet."
+            },
+            {
+                name: "MPLS",
+                layer: 2,
+                description: "Многопротокольная коммутация по меткам. Добавляет метки к пакетам для упрощения маршрутизации.",
+                port: "N/A",
+                function: "Коммутация пакетов",
+                uses: "IP",
+                fullDescription: "MPLS позволяет маршрутизаторам коммутировать пакеты на основе меток вместо полного маршрута."
+            },
+            {
+                name: "PPPoE",
+                layer: 2,
+                description: "Point-to-Point Protocol over Ethernet. Инкапсуляция PPP в Ethernet кадрах.",
+                port: "N/A",
+                function: "Доступ в интернет",
+                uses: "Ethernet",
+                fullDescription: "PPPoE используется для аутентификации пользователей в ADSL и кабельных интернет-услугах."
+            },
+            {
+                name: "STP (Spanning Tree Protocol)",
+                layer: 2,
+                description: "Протокол покрывающего дерева. Предотвращает циклы и обеспечивает резервирование.",
+                port: "N/A",
+                function: "Управление сетевой топологией",
+                uses: "Ethernet",
+                fullDescription: "STP/RSTP/MSTP обнаруживает циклы в сети и блокирует избыточные линии для предотвращения петель."
+            },
+            {
+                name: "RSTP (Rapid Spanning Tree)",
+                layer: 2,
+                description: "Быстрый протокол покрывающего дерева. Улучшенная версия STP с быстрой конвергенцией.",
+                port: "N/A",
+                function: "Быстрое восстановление после сбоев",
+                uses: "Ethernet",
+                fullDescription: "RSTP восстанавливается после отказа линии быстрее, чем оригинальный STP."
+            },
+            {
+                name: "LLDP",
+                layer: 2,
+                description: "Link Layer Discovery Protocol. Отправляет информацию о соседних устройствах.",
+                port: "N/A",
+                function: "Обнаружение соседей",
+                uses: "Ethernet",
+                fullDescription: "LLDP позволяет устройствам обмениваться информацией друг с другом для автоматического обнаружения сети."
+            },
+            {
+                name: "MAC",
+                layer: 2,
+                description: "Media Access Control. Управление доступом к физической среде в локальной сети.",
+                port: "N/A",
+                function: "Управление доступом",
+                uses: "Physical Layer",
+                fullDescription: "MAC адреса (48-битные) используются для идентификации устройств в локальной сети."
+            },
+            {
+                name: "VRRP",
+                layer: 2,
+                description: "Virtual Router Redundancy Protocol. Резервирование маршрутизаторов.",
+                port: "N/A",
+                function: "Отказоустойчивость",
+                uses: "IP/Ethernet",
+                fullDescription: "VRRP позволяет нескольким маршрутизаторам работать вместе, так чтобы один мог заменить другой."
+            },
+
+            // Дополнительные протоколы Layer 1 - Physical
+            {
+                name: "DSL",
+                layer: 1,
+                description: "Digital Subscriber Line. Передача данных по телефонным линиям.",
+                port: "N/A",
+                function: "Домашний интернет",
+                uses: "Copper Lines",
+                fullDescription: "ADSL/VDSL используют телефонные провода для обеспечения интернета. VDSL намного быстрее."
+            },
+            {
+                name: "USB",
+                layer: 1,
+                description: "Universal Serial Bus. Стандартный интерфейс для подключения устройств.",
+                port: "N/A",
+                function: "Подключение периферии",
+                uses: "Serial Protocol",
+                fullDescription: "USB используется для подключения мышей, клавиатур, принтеров и других устройств к компьютерам."
+            },
+            {
+                name: "RS-232/RS-485",
+                layer: 1,
+                description: "Последовательные интерфейсы. Используются для промышленных систем и устройств.",
+                port: "N/A",
+                function: "Последовательная передача",
+                uses: "Serial",
+                fullDescription: "RS-232 и RS-485 - это стандарты для последовательной передачи данных на короткие расстояния."
+            },
+            {
+                name: "Power Lines",
+                layer: 1,
+                description: "Передача данных через электросеть. PLC технология для домашней автоматизации.",
+                port: "N/A",
+                function: "Домашняя сеть",
+                uses: "Electrical",
+                fullDescription: "Power Line Communication (PLC) позволяет передавать данные через обычные электрические провода."
+            },
+            {
+                name: "Microwave",
+                layer: 1,
+                description: "Микроволновая передача. Используется для беспроводных магистралей.",
+                port: "N/A",
+                function: "Магистральные линии",
+                uses: "RF",
+                fullDescription: "Микроволны используются для беспроводной передачи данных на дальние расстояния между городами."
+            },
+            {
+                name: "Bluetooth",
+                layer: 1,
+                description: "Стандарт беспроводной связи на короткие расстояния. 2.4 ГГц диапазон.",
+                port: "N/A",
+                function: "Персональная сеть (PAN)",
+                uses: "RF",
+                fullDescription: "Bluetooth используется для подключения наушников, периферии и других устройств на расстоянии до 100м."
+            },
+            {
+                name: "NFC",
+                layer: 1,
+                description: "Near Field Communication. Беспроводная связь на очень коротких расстояниях.",
+                port: "N/A",
+                function: "Близкодистанционная передача",
+                uses: "RF",
+                fullDescription: "NFC используется для бесконтактных платежей, открытия дверей и обмена данными на расстояния до 10см."
+            },
+            {
+                name: "Zigbee",
+                layer: 1,
+                description: "Стандарт для беспроводных сенсорных сетей. Низкое энергопотребление.",
+                port: "N/A",
+                function: "IoT сенсорные сети",
+                uses: "RF",
+                fullDescription: "Zigbee используется для связи множества датчиков и устройств в IoT сетях с минимальным потреблением электроэнергии."
+            },
+            {
+                name: "LoRaWAN",
+                layer: 1,
+                description: "Long Range WAN. Дальняя беспроводная сеть для IoT с низким энергопотреблением.",
+                port: "N/A",
+                function: "Дальнодействующие IoT сети",
+                uses: "RF",
+                fullDescription: "LoRaWAN позволяет устройствам передавать данные на километры с минимальным потреблением энергии."
+            },
+            {
+                name: "Satellite",
+                layer: 1,
+                description: "Спутниковая связь. Передача данных через спутники.",
+                port: "N/A",
+                function: "Глобальное покрытие",
+                uses: "RF",
+                fullDescription: "Спутниковая связь обеспечивает интернет в удалённых районах без наземной инфраструктуры."
             }
         ];
 
