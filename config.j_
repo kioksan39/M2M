@@ -1,0 +1,18 @@
+// Начальные значения. Сохранённые через форму значения имеют приоритет.
+window.PROTOCOL_GUIDE_CONFIG = {
+  gre: {
+    apn: 'guide.protocol.test',
+    pool: '10.20.0.0/24',
+    public: '203.0.113.10',
+    mts: '172.16.100.1',
+    customer: '172.16.100.2'
+  },
+  png: {
+    scale: 2,          // Плотность PNG; 2 = удвоенное разрешение.
+    width: 1500,       // Ширина макета до умножения на scale.
+    diagramHeight: 760,
+    descriptionWidth: 390,
+    padding: 28,
+    filename: 'Protocol_Guide_GRE.png'
+  }
+};

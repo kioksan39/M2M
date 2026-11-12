@@ -1,0 +1,23 @@
+/* Главный файл для изменения оформления. Загружается после базовых стилей. */
+:root {
+  --guide-font: Iosevka, ui-monospace, monospace;
+  font-family: var(--guide-font);
+}
+:root[data-theme="light"] {
+  --ink: #0032a0;
+  --ink-strong: #00238a;
+  --ink-soft: #5a73a8;
+  --ink-muted: #7d96c6;
+  --line: #6f94c9;
+  --line-soft: #e3e9f3;
+  --bg: #fdfdfe;
+  --panel: #fefeff;
+  --green: #00a86b;
+  --amber: #f8b900;
+  --blue: #0a78f5;
+  --active: #1f5fe0;
+}
+/* Детальные оттенки SVG задаются переменными --k-* в base.css.
+   Их также можно переопределять здесь. */
+.network text, .seq-svg text { font-family: var(--guide-font); }
+.guide-dialog, .guide-fields input { font-family: var(--guide-font); }

@@ -1,0 +1,93 @@
+function setupGuideSettings() {
+  const { greLesson, lessons: _s, refreshGRE } = window.ProtocolGuide;
+  const guideTemplate = JSON.parse(JSON.stringify(greLesson));
+  let guideConfig = { ...window.PROTOCOL_GUIDE_CONFIG.gre };
+  const guideIP = (s) => {
+    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(s))
+      return null;
+    let a = s.split(".").map(Number);
+    return a.some((n) => n > 255) ? null : a.reduce((n, v) => n * 256 + v, 0);
+  };
+  const guideAddr = (n) => [24, 16, 8, 0].map((s) => n >>> s & 255).join(".");
+  function guideValidate(c) {
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,98}[a-zA-Z0-9])?$/.test(c.apn) || c.apn.includes(".."))
+      return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F APN: \u043B\u0430\u0442\u0438\u043D\u0441\u043A\u0438\u0435 \u0431\u0443\u043A\u0432\u044B, \u0446\u0438\u0444\u0440\u044B, \u0442\u043E\u0447\u043A\u0438 \u0438 \u0434\u0435\u0444\u0438\u0441\u044B.";
+    let [ip, p] = c.pool.split("/"), n = guideIP(ip), prefix = Number(p);
+    if (n === null || !/^\d{1,2}$/.test(p || "") || prefix < 1 || prefix > 30)
+      return "Modem IP Pool: \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u0442\u044C \u0432 CIDR, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 10.20.0.0/24 (\u043F\u0440\u0435\u0444\u0438\u043A\u0441 1\u201330).";
+    let size = 2 ** (32 - prefix);
+    if (n % size)
+      return "\u0412 Modem IP Pool \u043D\u0443\u0436\u0435\u043D \u0430\u0434\u0440\u0435\u0441 \u0441\u0435\u0442\u0438, \u0431\u0435\u0437 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0445 \u0431\u0438\u0442\u043E\u0432 \u0443\u0437\u043B\u0430.";
+    let pub = guideIP(c.public), a = guideIP(c.mts), b = guideIP(c.customer);
+    if (pub === null || pub === 0 || pub >= 3758096384 || c.public === "217.73.241.91")
+      return "Public IP \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u044B\u043C \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u043C unicast IPv4-\u0430\u0434\u0440\u0435\u0441\u043E\u043C.";
+    if (a === null || b === null || a === b || Math.floor(a / 4) !== Math.floor(b / 4) || ![1, 2].includes(a % 4) || ![1, 2].includes(b % 4))
+      return "P2P: \u043D\u0443\u0436\u043D\u044B \u0434\u0432\u0430 \u0440\u0430\u0437\u043D\u044B\u0445 \u0430\u0434\u0440\u0435\u0441\u0430 \u0443\u0437\u043B\u043E\u0432 \u043E\u0434\u043D\u043E\u0439 /30 (\u043D\u0435 \u0430\u0434\u0440\u0435\u0441 \u0441\u0435\u0442\u0438 \u0438 \u043D\u0435 broadcast).";
+    const overlap = (x, l, y, k) => x < y + k && y < x + l;
+    if (overlap(n, size, Math.floor(a / 4) * 4, 4) || overlap(n, size, guideIP("192.168.10.0"), 256) || overlap(Math.floor(a / 4) * 4, 4, guideIP("192.168.10.0"), 256))
+      return "Modem IP Pool, P2P \u0438 LAN 192.168.10.0/24 \u043D\u0435 \u0434\u043E\u043B\u0436\u043D\u044B \u043F\u0435\u0440\u0435\u0441\u0435\u043A\u0430\u0442\u044C\u0441\u044F.";
+    return "";
+  }
+  function guideApply() {
+    const c = guideConfig, [net, pre] = c.pool.split("/");
+    let n = guideIP(net), size = 2 ** (32 - Number(pre));
+    const sim = guideAddr(n + Math.min(10, size - 2)), p2p = guideAddr(Math.floor(guideIP(c.mts) / 4) * 4) + "/30";
+    const pairs = [["company.msk \u2014 \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u0438\u043C\u0435\u0440", c.apn], ["10.20.0.0/24", c.pool], ["10.20.0.10", sim], ["198.51.100.10", "217.73.241.91"], ["203.0.113.10", c.public], ["172.16.100.0/30", p2p], ["172.16.100.1", c.mts], ["172.16.100.2", c.customer]];
+    const convert = (v) => typeof v === "string" ? v.replace(/company\.msk — только пример|10\.20\.0\.0\/24|10\.20\.0\.10|198\.51\.100\.10|203\.0\.113\.10|172\.16\.100\.0\/30|172\.16\.100\.1|172\.16\.100\.2/g, (s) => pairs.find((p) => p[0] === s)[1]) : Array.isArray(v) ? v.map(convert) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, convert(x)])) : v;
+    _s.gre = convert(guideTemplate);
+    _s.gre.labels.router = ["APN \xB7 " + c.apn, "\u041C\u0422\u0421 217.73.241.91"];
+    _s.gre.labels.client = ["SIM \xB7 " + sim, "Pool " + c.pool];
+    _s.gre.labels.web = ["GRE \u043A\u043B\u0438\u0435\u043D\u0442\u0430", c.public];
+    _s.gre.overview.facts.unshift(["\u0418\u043C\u044F APN", c.apn], ["Public IP \u043A\u043B\u0438\u0435\u043D\u0442\u0430", c.public], ["\u041C\u0422\u0421 \xB7 tunnel destination", "217.73.241.91"], ["P2P \u041C\u0422\u0421 / \u043A\u043B\u0438\u0435\u043D\u0442", c.mts + " / " + c.customer]);
+    _s.gre.steps[5].detail = "\u041E\u0442\u0434\u0435\u043B\u044C\u043D\u0430\u044F \u0441\u0435\u0442\u044C P2P: " + p2p + ". \u0410\u0434\u0440\u0435\u0441 \u041C\u0422\u0421 " + c.mts + ", \u0430\u0434\u0440\u0435\u0441 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 " + c.customer + ". \u042D\u0442\u043E \u0430\u0434\u0440\u0435\u0441\u0430 \u043B\u043E\u0433\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E GRE-\u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430, \u0430 \u043D\u0435 WAN \u0438 \u043D\u0435 \u043F\u0443\u043B SIM. \u0410\u0434\u0440\u0435\u0441 \u0441\u0435\u0442\u0438 " + guideAddr(Math.floor(guideIP(c.mts) / 4) * 4) + " \u0438 broadcast " + guideAddr(Math.floor(guideIP(c.mts) / 4) * 4 + 3) + " \u043D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0430\u044E\u0442\u0441\u044F \u0443\u0437\u043B\u0430\u043C. Ping \u043F\u043E P2P \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442 GRE, \u043D\u043E \u043D\u0435 \u0437\u0430\u043C\u0435\u043D\u044F\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0443 SIM \u2192 LAN. GRE \u043D\u0435 \u0438\u043C\u0435\u0435\u0442 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E\u0433\u043E \u0440\u0443\u043A\u043E\u043F\u043E\u0436\u0430\u0442\u0438\u044F.";
+    _s.gre.steps[5].facts = [["\u0421\u0435\u0442\u044C P2P", p2p], ["\u041C\u0422\u0421", c.mts + "/30"], ["\u041A\u043B\u0438\u0435\u043D\u0442", c.customer + "/30"]];
+    refreshGRE();
+    return { sim, p2p };
+  }
+  try {
+    const v = JSON.parse(localStorage.getItem("protocol-guide:gre"));
+    if (v && !guideValidate(v))
+      guideConfig = v;
+  } catch {
+  }
+  guideApply();
+  const guideActions = document.createElement("div");
+  guideActions.className = "guide-actions";
+  guideActions.innerHTML = '<button type="button" id="guide-edit">\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B GRE</button><button type="button" id="guide-png">\u0421\u043A\u0430\u0447\u0430\u0442\u044C \u0441\u0445\u0435\u043C\u0443 PNG</button>';
+  document.body.append(guideActions);
+  const guideDialog = document.createElement("dialog");
+  guideDialog.className = "guide-dialog";
+  guideDialog.innerHTML = `<form><h2>\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B GRE</h2><p>\u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u043A \u0441\u0445\u0435\u043C\u0435, \u0443\u0440\u043E\u043A\u0443 \u0438 \u043F\u0430\u043A\u0435\u0442\u0430\u043C \u043F\u043E\u0441\u043B\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438.</p><div class="guide-fields">${[["apn", "\u0418\u043C\u044F APN"], ["pool", "Modem IP Pool (CIDR)"], ["public", "Public IP \u043A\u043B\u0438\u0435\u043D\u0442\u0430"], ["mts", "P2P NETWORKS \xB7 \u041C\u0422\u0421 \u0442\u0440\u0430\u043D\u0441\u043F\u043E\u0440\u0442 IP"], ["customer", "P2P NETWORKS \xB7 \u0412\u0430\u0448 \u0442\u0440\u0430\u043D\u0441\u043F\u043E\u0440\u0442 IP"]].map(([key, label]) => `<label>${label}<input name="${key}" autocomplete="off" required></label>`).join("")}</div><div class="guide-fixed">\u0423\u0437\u0435\u043B \u041C\u0422\u0421: <b>217.73.241.91</b><br>\u041D\u0430 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0438\u0437\u0430\u0442\u043E\u0440\u0435 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: <code>tunnel destination 217.73.241.91</code><br>\u041D\u0430 \u041C\u0422\u0421 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u0442\u0443\u043D\u043D\u0435\u043B\u044F \u2014 Public IP \u043A\u043B\u0438\u0435\u043D\u0442\u0430.</div><small>P2P: \u0430\u0434\u0440\u0435\u0441\u0430 \u0432\u0432\u043E\u0434\u044F\u0442\u0441\u044F \u0431\u0435\u0437 \u043C\u0430\u0441\u043A\u0438, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F /30. LAN \u043F\u0440\u0438\u043C\u0435\u0440\u0430: 192.168.10.0/24. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044E\u0442\u0441\u044F \u0432 \u044D\u0442\u043E\u043C \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435.</small><p class="guide-error" role="alert"></p><div class="guide-bottom"><button type="button" id="guide-cancel">\u041E\u0442\u043C\u0435\u043D\u0430</button><button type="submit">\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C</button></div></form>`;
+  document.body.append(guideDialog);
+  document.getElementById("guide-edit").onclick = () => {
+    for (const [k, v] of Object.entries(guideConfig))
+      guideDialog.querySelector(`[name="${k}"]`).value = v;
+    guideDialog.querySelector(".guide-error").textContent = "";
+    guideDialog.showModal();
+  };
+  document.getElementById("guide-cancel").onclick = () => guideDialog.close();
+  guideDialog.querySelector("form").onsubmit = (e) => {
+    e.preventDefault();
+    const c = Object.fromEntries(new FormData(e.target));
+    for (const k in c)
+      c[k] = c[k].trim();
+    c.mts = c.mts.replace(/\/30$/, "");
+    c.customer = c.customer.replace(/\/30$/, "");
+    const error = guideValidate(c);
+    guideDialog.querySelector(".guide-error").textContent = error;
+    if (error)
+      return;
+    guideConfig = c;
+    try {
+      localStorage.setItem("protocol-guide:gre", JSON.stringify(c));
+    } catch {
+    }
+    guideApply();
+    guideDialog.close();
+  };
+  const guideStatus = document.createElement("div");
+  guideStatus.className = "guide-status";
+  guideStatus.setAttribute("role", "status");
+  document.body.append(guideStatus);
+}
+if(window.ProtocolGuide) setupGuideSettings(); else document.addEventListener("protocol-guide-ready",setupGuideSettings);
