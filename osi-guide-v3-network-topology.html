@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSI Протоколы - Интерактивные Сетевые Топологии</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1; --secondary: #ec4899;
+            --bg: #f8fafc; --bg-dark: #0f172a; --text: #1e293b;
+            --border: #e2e8f0; --success: #10b981; --warning: #f59e0b;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg); color: var(--text);
+            transition: 0.3s;
+        }
+        
+        body.dark { background: var(--bg-dark); color: #e2e8f0; }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; padding: 2rem; text-align: center; position: sticky; top: 0; z-index: 100;
+        }
+        
+        .container {
+            max-width: 1400px; margin: 0 auto; padding: 2rem;
+        }
+        
+        .protocols-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+        
+        .protocol-card {
+            background: white; padding: 1.5rem; border-radius: 12px;
+            border: 2px solid var(--border); cursor: pointer;
+            transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        body.dark .protocol-card { background: #1e293b; border-color: #334155; }
+        
+        .protocol-card:hover {
+            border-color: var(--primary); transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
+        }
+        
+        .protocol-name { font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-bottom: 0.5rem; }
+        .protocol-layer { font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 0.3rem 0.8rem; border-radius: 20px; display: inline-block; }
+        .protocol-desc { font-size: 0.9rem; color: #64748b; margin-top: 0.8rem; line-height: 1.5; }
+        
+        /* Модальное окно */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+        }
+        
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: white; border-radius: 16px; width: 90%; max-width: 1200px;
+            max-height: 90vh; overflow-y: auto; padding: 0;
+        }
+        
+        body.dark .modal-content { background: #1e293b; }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; padding: 2rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .modal-close {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            font-size: 1.5rem; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px;
+        }
+        
+        .modal-body {
+            padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+        }
+        
+        @media (max-width: 900px) {
+            .modal-body { grid-template-columns: 1fr; }
+        }
+        
+        .description-section h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--primary); }
+        .description-section p { line-height: 1.7; margin-bottom: 1rem; color: #64748b; }
+        
+        body.dark .description-section p { color: #cbd5e1; }
+        
+        /* Визуализация сети */
+        .network-diagram {
+            background: linear-gradient(135deg, #f0f4ff, #fff7f0);
+            border-radius: 12px; padding: 2rem; min-height: 500px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        
+        body.dark .network-diagram {
+            background: linear-gradient(135deg, #1e2a4a, #2a1a20);
+        }
+        
+        .topology-svg {
+            width: 100%; height: 100%; min-height: 500px;
+        }
+        
+        /* Анимация пакетов */
+        @keyframes packetFlow {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; transform: translateX(400px); }
+        }
+        
+        .animated-packet {
+            animation: packetFlow 2s infinite;
+        }
+        
+        .controls {
+            display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem; border: none; border-radius: 8px;
+            cursor: pointer; font-size: 0.9rem; transition: all 0.3s;
+        }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+        
+        .btn-secondary { background: var(--border); color: var(--text); }
+        .btn-secondary:hover { background: #cbd5e1; }
+        
+        .search-box {
+            flex: 1; min-width: 200px; padding: 0.75rem 1rem;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .legend {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-top: 1.5rem; padding: 1.5rem;
+            background: rgba(99, 102, 241, 0.05); border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px; height: 20px; border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌐 OSI Протоколы: Интерактивные Сетевые Топологии</h1>
+        <p>Откройте протокол, чтобы увидеть, как пакеты передаются по сети</p>
+    </header>
+    
+    <div class="container">
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Поиск протокола...">
+            <button class="btn btn-secondary" id="themeToggle">🌙 Тёмный режим</button>
+        </div>
+        
+        <div class="protocols-grid" id="protocolsGrid"></div>
+    </div>
+    
+    <!-- Модальное окно с деталями и топологией -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="protocolTitle"></h2>
+                    <p id="protocolLayer"></p>
+                </div>
+                <button class="modal-close" onclick="closeDetail()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="description-section" id="description"></div>
+                <div class="network-diagram" id="diagramContainer"></div>
+            </div>
+            
+            <div class="legend" id="legendContainer"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Топологические диаграммы сетевых протоколов
+        
+        const createHTTPTopology = () => {
+            return `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <style>
+                        .device-box { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .server-box { fill: #fecaca; stroke: #ef4444; stroke-width: 2; }
+                        .network-box { fill: #c7d2fe; stroke: #6366f1; stroke-width: 1.5; stroke-dasharray: 5,5; }
+                        .label { font-family: Arial; font-size: 13px; text-anchor: middle; font-weight: bold; }
+                        .small-label { font-family: Arial; font-size: 11px; text-anchor: middle; }
+                        .packet-arrow { stroke: #f59e0b; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+                        .response-arrow { stroke: #10b981; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead-green); }
+                    </style>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+                    </marker>
+                    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#10b981" />
+                    </marker>
+                </defs>
+                
+                <text x="400" y="30" class="label" style="font-size: 18px;">HTTP: Запрос-Ответ Архитектура</text>
+                
+                <!-- Сеть -->
+                <rect x="50" y="80" width="700" height="480" class="network-box" rx="10"/>
+                <text x="400" y="105" class="small-label" style="fill: #6366f1;">Интернет / Локальная Сеть</text>
+                
+                <!-- Клиент -->
+                <rect x="80" y="150" width="140" height="100" class="device-box" rx="8"/>
+                <text x="150" y="190" class="label" style="font-size: 14px;">Браузер</text>
+                <text x="150" y="215" class="small-label">192.168.1.10</text>
+                <circle cx="150" cy="240" r="4" fill="#3b82f6"/>
+                
+                <!-- Маршрутизатор -->
+                <rect x="350" y="150" width="100" height="100" class="network-box" rx="8"/>
+                <text x="400" y="200" class="label" style="font-size: 13px;">Маршрут.</text>
+                <circle cx="400" cy="240" r="4" fill="#6366f1"/>
+                
+                <!-- Сервер -->
+                <rect x="580" y="150" width="140" height="100" class="server-box" rx="8"/>
+                <text x="650" y="190" class="label" style="font-size: 14px;">Веб-сервер</text>
+                <text x="650" y="215" class="small-label">203.0.113.5</text>
+                <circle cx="650" cy="240" r="4" fill="#ef4444"/>
+                
+                <!-- Запрос GET -->
+                <path d="M 220 200 L 350 200" class="packet-arrow" stroke-dasharray="5,5"/>
+                <path d="M 220 240 L 350 240" class="packet-arrow"/>
+                <text x="280" y="185" class="small-label" fill="#f59e0b">GET /index.html HTTP/1.1</text>
+                <text x="280" y="260" class="small-label" fill="#f59e0b">Запрос (TCP порт 80/443)</text>
+                
+                <!-- Ответ -->
+                <path d="M 580 280 L 450 280" class="response-arrow" stroke-dasharray="5,5"/>
+                <path d="M 580 320 L 450 320" class="response-arrow"/>
+                <text x="510" y="265" class="small-label" fill="#10b981">HTTP 200 OK</text>
+                <text x="510" y="340" class="small-label" fill="#10b981">Ответ (HTML, CSS, JS)</text>
+                
+                <!-- Информационные блоки -->
+                <rect x="80" y="320" width="310" height="200" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" rx="5"/>
+                <text x="90" y="340" class="small-label" style="text-anchor: start; font-weight: bold; fill: #64748b;">Характеристики:</text>
+                <text x="100" y="360" class="small-label" style="text-anchor: start; fill: #64748b;">• Уровень: 7 (Приложение)</text>
+                <text x="100" y="378" class="small-label" style="text-anchor: start; fill: #64748b;">• Протокол: TCP</text>
+                <text x="100" y="396" class="small-label" style="text-anchor: start; fill: #64748b;">• Порты: 80 (HTTP), 443 (HTTPS)</text>
+                <text x="100" y="414" class="small-label" style="text-anchor: start; fill: #64748b;">• Шифрование: TLS/SSL (HTTPS)</text>
+                <text x="100" y="432" class="small-label" style="text-anchor: start; fill: #64748b;">• Статус: 200 OK, 404 Not Found</text>
+                <text x="100" y="450" class="small-label" style="text-anchor: start; fill: #64748b;">• Методы: GET, POST, PUT, DELETE</text>
+                <text x="100" y="468" class="small-label" style="text-anchor: start; fill: #64748b;">• Версия: HTTP/1.1, HTTP/2, HTTP/3</text>
+                <text x="100" y="486" class="small-label" style="text-anchor: start; fill: #64748b;">• Кэширование: Заголовки Cache-Control</text>
+                <text x="100" y="504" class="small-label" style="text-anchor: start; fill: #64748b;">• Формат: Текстовый (заголовки)</text>
+                
+                <!-- Этапы соединения -->
+                <rect x="420" y="320" width="300" height="200" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" rx="5"/>
+                <text x="430" y="340" class="small-label" style="text-anchor: start; font-weight: bold; fill: #64748b;">Этапы передачи:</text>
+                <text x="440" y="360" class="small-label" style="text-anchor: start; fill: #64748b;">1. DNS поиск (domain.com → IP)</text>
+                <text x="440" y="378" class="small-label" style="text-anchor: start; fill: #64748b;">2. TCP соединение (3-way handshake)</text>
+                <text x="440" y="396" class="small-label" style="text-anchor: start; fill: #64748b;">3. TLS рукопожатие (если HTTPS)</text>
+                <text x="440" y="414" class="small-label" style="text-anchor: start; fill: #64748b;">4. Отправка HTTP запроса</text>
+                <text x="440" y="432" class="small-label" style="text-anchor: start; fill: #64748b;">5. Получение HTTP ответа</text>
+                <text x="440" y="450" class="small-label" style="text-anchor: start; fill: #64748b;">6. Загрузка ресурсов (CSS, JS, изображения)</text>
+                <text x="440" y="468" class="small-label" style="text-anchor: start; fill: #64748b;">7. Закрытие соединения (или Keep-Alive)</text>
+                <text x="440" y="486" class="small-label" style="text-anchor: start; fill: #64748b;">8. Рендеринг страницы в браузере</text>
+                <text x="440" y="504" class="small-label" style="text-anchor: start; fill: #64748b;">9. Выполнение JavaScript кода</text>
+            </svg>`;
+        };
+        
+        const createTCPTopology = () => {
+            return `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <style>
+                        .device-box { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .label { font-family: Arial; font-size: 13px; text-anchor: middle; font-weight: bold; }
+                        .small-label { font-family: Arial; font-size: 11px; text-anchor: middle; }
+                        .step-box { fill: #c7d2fe; stroke: #6366f1; stroke-width: 2; }
+                        .packet-arrow { stroke: #8b5cf6; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+                    </style>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" />
+                    </marker>
+                </defs>
+                
+                <text x="400" y="30" class="label" style="font-size: 18px;">TCP: 3-Way Handshake и Надёжная Доставка</text>
+                
+                <!-- Клиент -->
+                <rect x="50" y="100" width="150" height="80" class="device-box" rx="8"/>
+                <text x="125" y="135" class="label">Клиент</text>
+                <text x="125" y="160" class="small-label" style="font-weight: normal;">192.168.1.100:50000</text>
+                
+                <!-- Сервер -->
+                <rect x="700" y="100" width="150" height="80" class="device-box" rx="8"/>
+                <text x="775" y="135" class="label">Сервер</text>
+                <text x="775" y="160" class="small-label" style="font-weight: normal;">192.168.1.1:80</text>
+                
+                <!-- Шаг 1: SYN -->
+                <rect x="250" y="220" width="300" height="60" class="step-box" rx="6"/>
+                <text x="400" y="250" class="small-label" style="font-weight: bold; fill: #6366f1;">1. Шаг: SYN (Синхронизация)</text>
+                <path d="M 200 160 L 400 220" class="packet-arrow" stroke-dasharray="5,5"/>
+                <text x="280" y="185" class="small-label" fill="#8b5cf6">SYN, SEQ=100</text>
+                
+                <!-- Шаг 2: SYN-ACK -->
+                <rect x="250" y="310" width="300" height="60" class="step-box" rx="6"/>
+                <text x="400" y="340" class="small-label" style="font-weight: bold; fill: #6366f1;">2. Шаг: SYN-ACK (Подтверждение)</text>
+                <path d="M 600 160 L 400 310" class="packet-arrow"/>
+                <text x="530" y="225" class="small-label" fill="#8b5cf6">SYN-ACK, SEQ=300, ACK=101</text>
+                
+                <!-- Шаг 3: ACK -->
+                <rect x="250" y="400" width="300" height="60" class="step-box" rx="6"/>
+                <text x="400" y="430" class="small-label" style="font-weight: bold; fill: #6366f1;">3. Шаг: ACK (Подтверждение)</text>
+                <path d="M 200 160 L 400 400" class="packet-arrow" stroke-dasharray="5,5"/>
+                <text x="280" y="275" class="small-label" fill="#8b5cf6">ACK, SEQ=101, ACK=301</text>
+                
+                <!-- Передача данных -->
+                <rect x="250" y="490" width="300" height="80" fill="none" stroke="#10b981" stroke-width="2" rx="6"/>
+                <text x="400" y="515" class="small-label" style="font-weight: bold; fill: #10b981;">Соединение установлено</text>
+                <text x="400" y="535" class="small-label" style="fill: #10b981;">Передача данных (например, HTTP запрос)</text>
+                <text x="400" y="555" class="small-label" style="fill: #10b981;">Контроль очередности и повторная передача потерянных пакетов</text>
+                
+                <!-- Легенда -->
+                <g id="legend">
+                    <rect x="50" y="580" width="700" height="0" fill="none"/>
+                </g>
+            </svg>`;
+        };
+        
+        const createDNSTopology = () => {
+            return `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <style>
+                        .device-box { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .server-box { fill: #fecaca; stroke: #ef4444; stroke-width: 2; }
+                        .label { font-family: Arial; font-size: 13px; text-anchor: middle; font-weight: bold; }
+                        .small-label { font-family: Arial; font-size: 11px; text-anchor: middle; }
+                        .packet-arrow { stroke: #f59e0b; stroke-width: 2; fill: none; marker-end: url(#arrowDns); }
+                    </style>
+                    <marker id="arrowDns" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+                    </marker>
+                </defs>
+                
+                <text x="400" y="30" class="label" style="font-size: 18px;">DNS: Преобразование Имён в IP Адреса</text>
+                
+                <!-- Клиент -->
+                <rect x="50" y="100" width="140" height="80" class="device-box" rx="8"/>
+                <text x="120" y="135" class="label">Браузер</text>
+                <text x="120" y="160" class="small-label">Запрос: google.com?</text>
+                
+                <!-- Рекурсивный резолвер (ISP) -->
+                <rect x="250" y="100" width="140" height="80" class="server-box" rx="8"/>
+                <text x="320" y="130" class="label" style="font-size: 12px;">Рекурсивный</text>
+                <text x="320" y="145" class="label" style="font-size: 12px;">Резолвер</text>
+                <text x="320" y="165" class="small-label">(ISP DNS)</text>
+                
+                <!-- Root nameserver -->
+                <rect x="450" y="100" width="120" height="80" class="server-box" rx="8"/>
+                <text x="510" y="125" class="label" style="font-size: 11px;">Root NS</text>
+                <text x="510" y="140" class="label" style="font-size: 11px;">Сервер</text>
+                <text x="510" y="160" class="small-label" style="font-size: 9px;">*.root-servers.net</text>
+                
+                <!-- Top Level Domain -->
+                <rect x="650" y="100" width="100" height="80" class="server-box" rx="8"/>
+                <text x="700" y="125" class="label" style="font-size: 11px;">.com TLD</text>
+                <text x="700" y="140" class="label" style="font-size: 11px;">Сервер</text>
+                <text x="700" y="165" class="small-label" style="font-size: 9px;">Уровень домена</text>
+                
+                <!-- Авторитетный сервер -->
+                <rect x="450" y="250" width="140" height="80" class="server-box" rx="8"/>
+                <text x="520" y="280" class="label" style="font-size: 12px;">Авторитетный</text>
+                <text x="520" y="295" class="label" style="font-size: 12px;">NS Google</text>
+                <text x="520" y="315" class="small-label" style="font-size: 9px;">ns1.google.com</text>
+                
+                <!-- Запросы-ответы -->
+                <path d="M 190 140 L 250 140" class="packet-arrow"/>
+                <text x="215" y="130" class="small-label" fill="#f59e0b">Запрос</text>
+                
+                <path d="M 390 140 L 450 140" class="packet-arrow"/>
+                <text x="415" y="130" class="small-label" fill="#f59e0b">Запрос</text>
+                
+                <path d="M 570 140 L 650 140" class="packet-arrow"/>
+                <text x="605" y="130" class="small-label" fill="#f59e0b">Запрос</text>
+                
+                <path d="M 570 290 L 520 180" class="packet-arrow"/>
+                <text x="530" y="235" class="small-label" fill="#f59e0b">Ответ NS</text>
+                
+                <path d="M 390 180 L 320 180" class="packet-arrow"/>
+                <text x="350" y="195" class="small-label" fill="#f59e0b">IP: 142.250.0.1</text>
+                
+                <path d="M 250 180 L 120 180" class="packet-arrow"/>
+                <text x="180" y="195" class="small-label" fill="#f59e0b">Ответ: IP</text>
+                
+                <!-- Информация -->
+                <rect x="50" y="380" width="700" height="180" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" rx="5"/>
+                <text x="60" y="400" class="small-label" style="text-anchor: start; font-weight: bold; fill: #64748b;">Процесс разрешения DNS:</text>
+                <text x="70" y="420" class="small-label" style="text-anchor: start; fill: #64748b;">1. Браузер отправляет запрос на рекурсивный резолвер (ISP DNS 8.8.8.8)</text>
+                <text x="70" y="438" class="small-label" style="text-anchor: start; fill: #64748b;">2. Резолвер запрашивает Root NS: "Где google.com?"</text>
+                <text x="70" y="456" class="small-label" style="text-anchor: start; fill: #64748b;">3. Root NS отвечает адресом .com TLD сервера</text>
+                <text x="70" y="474" class="small-label" style="text-anchor: start; fill: #64748b;">4. Резолвер запрашивает .com TLD: "Где google.com?"</text>
+                <text x="70" y="492" class="small-label" style="text-anchor: start; fill: #64748b;">5. TLD отвечает адресом авторитетного NS Google</text>
+                <text x="70" y="510" class="small-label" style="text-anchor: start; fill: #64748b;">6. Резолвер запрашивает авторитетный NS Google</text>
+                <text x="70" y="528" class="small-label" style="text-anchor: start; fill: #64748b;">7. Google NS отвечает: google.com = 142.250.0.1</text>
+                <text x="70" y="546" class="small-label" style="text-anchor: start; fill: #64748b;">• Протокол: UDP (порт 53) | Кэширование: TTL (Time To Live)</text>
+            </svg>`;
+        };
+
+        const protocols = [
+            {
+                name: "HTTP/HTTPS",
+                layer: 7,
+                description: "Протокол передачи гипертекста для веб-приложений",
+                port: "80/443",
+                topology: createHTTPTopology,
+                legend: [
+                    { color: "#3b82f6", label: "Клиент (Браузер)" },
+                    { color: "#ef4444", label: "Сервер" },
+                    { color: "#6366f1", label: "Маршрутизатор" },
+                    { color: "#f59e0b", label: "Запрос" },
+                    { color: "#10b981", label: "Ответ" }
+                ]
+            },
+            {
+                name: "TCP",
+                layer: 4,
+                description: "Надёжная передача данных с установлением соединения",
+                port: "varies",
+                topology: createTCPTopology,
+                legend: [
+                    { color: "#3b82f6", label: "Хост" },
+                    { color: "#c7d2fe", label: "Этап соединения" },
+                    { color: "#8b5cf6", label: "Пакеты" }
+                ]
+            },
+            {
+                name: "DNS",
+                layer: 7,
+                description: "Преобразование доменных имён в IP адреса",
+                port: "53",
+                topology: createDNSTopology,
+                legend: [
+                    { color: "#3b82f6", label: "Клиент" },
+                    { color: "#ef4444", label: "DNS Сервер" },
+                    { color: "#f59e0b", label: "Запрос/Ответ" }
+                ]
+            }
+        ];
+
+        function init() {
+            renderProtocols();
+            document.getElementById('searchBox').addEventListener('input', filterProtocols);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            loadTheme();
+        }
+
+        function renderProtocols() {
+            const grid = document.getElementById('protocolsGrid');
+            grid.innerHTML = protocols.map(p => `
+                <div class="protocol-card" onclick="showDetail('${p.name}')">
+                    <div class="protocol-name">${p.name}</div>
+                    <div class="protocol-layer">Уровень ${p.layer}</div>
+                    <p class="protocol-desc">${p.description}</p>
+                </div>
+            `).join('');
+        }
+
+        function showDetail(protocolName) {
+            const protocol = protocols.find(p => p.name === protocolName);
+            if (!protocol) return;
+
+            document.getElementById('protocolTitle').textContent = protocol.name;
+            document.getElementById('protocolLayer').textContent = `Уровень ${protocol.layer} OSI | Порт: ${protocol.port}`;
+            
+            document.getElementById('description').innerHTML = `
+                <h3>${protocol.name}</h3>
+                <p><strong>${protocol.description}</strong></p>
+                <h3>О протоколе</h3>
+                <p>${protocol.name} используется для ${protocol.description.toLowerCase()}. Откройте интерактивную диаграмму справа, чтобы увидеть как пакеты передаются по сети.</p>
+            `;
+            
+            const svg = protocol.topology();
+            document.getElementById('diagramContainer').innerHTML = svg;
+            
+            if (protocol.legend) {
+                document.getElementById('legendContainer').innerHTML = protocol.legend.map(item => `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: ${item.color}"></div>
+                        <span>${item.label}</span>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        function filterProtocols() {
+            const term = document.getElementById('searchBox').value.toLowerCase();
+            const cards = document.querySelectorAll('.protocol-card');
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(term) ? '' : 'none';
+            });
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️ Светлый' : '🌙 Тёмный';
+        }
+
+        function loadTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️ Светлый';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
