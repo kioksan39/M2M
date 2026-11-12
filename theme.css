@@ -1,23 +1,69 @@
-/* Главный файл для изменения оформления. Загружается после базовых стилей. */
+/* МТС Theme - Стиль оператора МТС */
 :root {
   --guide-font: Iosevka, ui-monospace, monospace;
   font-family: var(--guide-font);
 }
 :root[data-theme="light"] {
-  --ink: #0032a0;
-  --ink-strong: #00238a;
-  --ink-soft: #5a73a8;
-  --ink-muted: #7d96c6;
-  --line: #6f94c9;
-  --line-soft: #e3e9f3;
-  --bg: #fdfdfe;
-  --panel: #fefeff;
+  /* МТС красный цвет (#e5202f) как основной */
+  --ink: #e5202f;
+  --ink-strong: #c71c24;
+  --ink-soft: #f0737f;
+  --ink-muted: #f4a8b0;
+  --line: #e5202f;
+  --line-soft: #ffe5e9;
+  --bg: #ffffff;
+  --panel: #f8f8f8;
   --green: #00a86b;
-  --amber: #f8b900;
-  --blue: #0a78f5;
-  --active: #1f5fe0;
+  --amber: #ff6b00;
+  --blue: #e5202f;
+  --active: #c71c24;
 }
-/* Детальные оттенки SVG задаются переменными --k-* в base.css.
-   Их также можно переопределять здесь. */
+
+/* Переопределение SVG цветов для МТС стиля */
+:root {
+  --k-on-amber: #e5202f;
+  --k-accent-primary: #e5202f;
+  --k-accent-light: #f0737f;
+  --k-accent-dark: #c71c24;
+}
+
+/* Стили для элементов */
 .network text, .seq-svg text { font-family: var(--guide-font); }
 .guide-dialog, .guide-fields input { font-family: var(--guide-font); }
+
+/* МТС брендинг - увеличенные границы и контрастность */
+body {
+  background-color: var(--bg);
+}
+
+.guide-panel, .guide-section {
+  background-color: var(--panel);
+  border-color: var(--line);
+}
+
+/* Красные акценты для кнопок и активных элементов */
+button, .btn, [role="button"] {
+  color: #ffffff;
+  background-color: var(--active);
+  border-color: var(--active);
+}
+
+button:hover, .btn:hover, [role="button"]:hover {
+  background-color: var(--ink-strong);
+  border-color: var(--ink-strong);
+}
+
+/* Заголовки в красном */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--ink);
+}
+
+/* Текст и контент */
+body, p, span, div {
+  color: #333333;
+}
+
+/* МТС логотип стиль */
+.mts-logo, .operator-logo {
+  filter: brightness(1.1);
+}
