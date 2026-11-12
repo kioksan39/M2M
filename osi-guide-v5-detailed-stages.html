@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSI Протоколы - Детальная Визуализация Этапов Передачи</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1; --secondary: #ec4899; --success: #10b981;
+            --bg: #f8fafc; --bg-dark: #0f172a; --text: #1e293b; --text-light: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg); color: var(--text); transition: 0.3s;
+        }
+        body.dark { background: var(--bg-dark); color: var(--text-light); }
+        
+        header { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; padding: 2rem; text-align: center; position: sticky; top: 0; z-index: 100;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        
+        .protocol-card {
+            background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #e2e8f0;
+            cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+        }
+        body.dark .protocol-card { background: #1e293b; border-color: #334155; }
+        .protocol-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        
+        .protocols-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        
+        .protocol-name { font-weight: bold; color: var(--primary); font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .protocol-layer { display: inline-block; background: rgba(99,102,241,0.1); color: var(--primary); padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .protocol-desc { color: #64748b; font-size: 0.95rem; line-height: 1.5; }
+        body.dark .protocol-desc { color: #cbd5e1; }
+        
+        /* Модаль */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto; }
+        .modal.show { display: block; }
+        
+        .modal-content { background: white; margin: 2rem auto; border-radius: 12px; width: 95%; max-width: 1200px; }
+        body.dark .modal-content { background: #0f172a; }
+        
+        .modal-header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 2rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2rem; cursor: pointer; padding: 0 1rem; }
+        
+        .modal-body { padding: 2rem; }
+        
+        .description { background: rgba(99,102,241,0.05); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary); margin-bottom: 2rem; }
+        
+        .stages-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stage {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        body.dark .stage { background: #1e293b; border-color: #334155; }
+        
+        .stage:hover { border-color: var(--primary); box-shadow: 0 8px 16px rgba(99,102,241,0.2); }
+        
+        .stage-number {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-bottom: 0.8rem;
+        }
+        
+        .stage-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stage-desc {
+            color: #64748b;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 0.8rem;
+        }
+        body.dark .stage-desc { color: #cbd5e1; }
+        
+        .stage-packet {
+            background: rgba(99,102,241,0.1);
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--primary);
+            word-break: break-all;
+        }
+        
+        .stage-flow {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        body.dark .stage-flow { border-top-color: #334155; color: #cbd5e1; }
+        
+        /* Диаграмма */
+        .diagram-section { margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #f0f4ff, #fff7f0); border-radius: 10px; }
+        body.dark .diagram-section { background: linear-gradient(135deg, #1e2a4a, #2a1a20); }
+        
+        .diagram-svg { width: 100%; height: auto; min-height: 400px; }
+        
+        @keyframes packetMove { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; r: 6; } 50% { opacity: 0.5; r: 8; } }
+        
+        .controls { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; }
+        body.dark .search-box { background: #1e293b; border-color: #334155; color: var(--text-light); }
+        
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; background: var(--primary); color: white; transition: 0.3s; }
+        .btn:hover { background: #4f46e5; transform: translateY(-2px); }
+        
+        .info-box { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 1rem; border-radius: 6px; margin: 1rem 0; }
+        body.dark .info-box { background: #1a2a42; border-left-color: #818cf8; }
+        
+        .stage.active { border-color: var(--success); background: rgba(16,185,129,0.05); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌐 OSI Протоколы: Детальная Визуализация Этапов</h1>
+        <p>Откройте протокол и смотрите каждый этап передачи пакета по сети</p>
+    </header>
+    
+    <div class="container">
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Поиск протокола (HTTP, TCP, DNS, UDP)...">
+            <button class="btn" id="themeToggle">🌙 Тёмный режим</button>
+        </div>
+        
+        <div class="protocols-list" id="protocolsList"></div>
+    </div>
+    
+    <!-- Модаль -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="protocolTitle"></h2>
+                    <p id="protocolMeta" style="opacity: 0.9;"></p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="description" id="fullDescription"></div>
+                
+                <h3 style="margin-bottom: 1rem; color: var(--primary);">Этапы передачи пакета:</h3>
+                <div class="stages-container" id="stagesContainer"></div>
+                
+                <div class="diagram-section">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">Топология сети</h3>
+                    <svg class="diagram-svg" id="topologySvg" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const protocols = {
+            'HTTP': {
+                layer: 7, port: '80/443', description: 'Протокол передачи гипертекста',
+                fullDescription: `HTTP (HyperText Transfer Protocol) - протокол уровня приложения (Layer 7), используемый для передачи веб-страниц. HTTP работает поверх TCP соединения.
+
+<strong>Характеристики:</strong>
+• Текстовый протокол (читаемый человеком)
+• Request-Response модель (запрос-ответ)
+• Без сохранения состояния (stateless)
+• HTTPS добавляет TLS/SSL шифрование для безопасности
+• Методы: GET, POST, PUT, DELETE
+• Коды ответов: 1xx, 2xx (успех), 3xx (перенаправление), 4xx (ошибка), 5xx (сервер)`,
+                stages: [
+                    { step: 1, title: 'DNS Разрешение', desc: 'Браузер запрашивает DNS: "google.com = ?"', packet: 'DNS Query', flow: '→ DNS Server' },
+                    { step: 2, title: 'DNS Ответ', desc: 'Получена IP: 142.250.0.1', packet: 'DNS Response', flow: '← DNS Server' },
+                    { step: 3, title: 'TCP SYN', desc: 'Установление соединения', packet: 'SYN, SEQ=1000', flow: '→ Web Server' },
+                    { step: 4, title: 'TCP SYN-ACK', desc: 'Сервер подтверждает', packet: 'SYN-ACK, ACK=1001', flow: '← Web Server' },
+                    { step: 5, title: 'TCP ACK', desc: 'Соединение установлено', packet: 'ACK, SEQ=1001', flow: '→ Web Server' },
+                    { step: 6, title: 'HTTP GET', desc: 'Запрос страницы', packet: 'GET /index.html HTTP/1.1', flow: '→ Web Server' },
+                    { step: 7, title: 'HTTP 200 OK', desc: 'Сервер отправляет заголовки', packet: 'HTTP/1.1 200 OK', flow: '← Web Server' },
+                    { step: 8, title: 'HTML Данные', desc: 'Передача содержимого', packet: '<html>...</html>', flow: '← Web Server (multiple)' },
+                    { step: 9, title: 'TCP FIN', desc: 'Закрытие соединения', packet: 'FIN, ACK', flow: '← Web Server' }
+                ]
+            },
+            'TCP': {
+                layer: 4, port: 'varies', description: 'Протокол управления передачей (надёжная доставка)',
+                fullDescription: `TCP (Transmission Control Protocol) - протокол транспортного уровня (Layer 4), обеспечивающий надёжную, упорядоченную доставку данных.
+
+<strong>Ключевые особенности:</strong>
+• Ориентирован на соединение (connection-oriented)
+• Гарантирует доставку всех пакетов в правильном порядке
+• Контролирует скорость передачи (flow control)
+• Обнаруживает и исправляет ошибки через контрольные суммы
+• Использует 3-Way Handshake для установления
+• Использует 4-Way Handshake для закрытия
+
+<strong>Флаги TCP:</strong> SYN (синхронизация), ACK (подтверждение), FIN (завершение), RST (сброс), PSH (отправить), URG (срочно)`,
+                stages: [
+                    { step: 1, title: 'SYN - Запрос', desc: 'Клиент отправляет SYN', packet: 'SYN, SEQ=1000, ACK=0', flow: '→ Server' },
+                    { step: 2, title: 'SYN-ACK', desc: 'Сервер отвечает SYN-ACK', packet: 'SYN-ACK, SEQ=2000, ACK=1001', flow: '← Server' },
+                    { step: 3, title: 'ACK - Финализация', desc: 'Клиент отправляет ACK', packet: 'ACK, SEQ=1001, ACK=2001', flow: '→ Server' },
+                    { step: 4, title: 'Передача данных', desc: 'Обмен данными установлен', packet: 'TCP Segment (Data)', flow: '↔ Bidirectional' },
+                    { step: 5, title: 'FIN - Завершение', desc: 'Одна сторона отправляет FIN', packet: 'FIN, ACK', flow: '→/← Server' },
+                    { step: 6, title: 'ACK FIN', desc: 'Подтверждение закрытия', packet: 'ACK', flow: '↔ Both sides' }
+                ]
+            },
+            'DNS': {
+                layer: 7, port: '53', description: 'Преобразование доменных имён в IP адреса',
+                fullDescription: `DNS (Domain Name System) - иерархическая система преобразования доменных имён в IP адреса. Использует UDP порт 53.
+
+<strong>Иерархия DNS:</strong>
+1. Root Nameservers - указывают на TLD серверы
+2. TLD Nameservers (.com, .org, .ru) - указывают на авторитетные серверы
+3. Authoritative Nameservers - хранят окончательные записи
+4. Recursive Resolvers (ISP DNS, 8.8.8.8) - кэшируют ответы
+
+<strong>Типы записей:</strong> A (IPv4), AAAA (IPv6), MX (почта), CNAME (псевдоним), NS (nameserver)`,
+                stages: [
+                    { step: 1, title: 'Клиент → Резолвер', desc: 'Браузер запрашивает локальный DNS', packet: 'Query: A google.com', flow: '→ Resolver' },
+                    { step: 2, title: 'Резолвер → Root NS', desc: 'Резолвер запрашивает Root', packet: 'Query: Domain=google.com', flow: '→ Root NS' },
+                    { step: 3, title: 'Root NS ответ', desc: 'Root отвечает адресом .com TLD', packet: 'Answer: NS com.tld', flow: '← Root NS' },
+                    { step: 4, title: 'Резолвер → TLD NS', desc: 'Резолвер запрашивает TLD', packet: 'Query: Domain=google.com', flow: '→ TLD NS' },
+                    { step: 5, title: 'TLD NS ответ', desc: 'TLD отвечает адресом Auth NS', packet: 'Answer: NS ns1.google', flow: '← TLD NS' },
+                    { step: 6, title: 'Резолвер → Auth NS', desc: 'Резолвер запрашивает авторитетный', packet: 'Query: Domain=google.com', flow: '→ Auth NS' },
+                    { step: 7, title: 'Auth NS ответ', desc: 'Авторитетный отвечает IP', packet: 'Answer: A 142.250.0.1', flow: '← Auth NS' },
+                    { step: 8, title: 'Резолвер → Клиент', desc: 'Клиент получает IP адрес', packet: 'Answer: A 142.250.0.1', flow: '← Resolver' }
+                ]
+            },
+            'UDP': {
+                layer: 4, port: 'varies', description: 'Протокол дейтаграмм пользователя (быстрая доставка)',
+                fullDescription: `UDP (User Datagram Protocol) - протокол транспортного уровня (Layer 4), обеспечивающий быструю, но ненадёжную доставку данных.
+
+<strong>Характеристики:</strong>
+• Без соединения (connectionless) - нет установления соединения
+• Быстрая доставка (low latency)
+• Меньше служебной информации чем TCP
+• НЕ гарантирует доставку пакетов
+• НЕ гарантирует порядок пакетов
+• Нет контроля потока
+• Меньше служебной нагрузки
+
+<strong>Применение:</strong> DNS запросы, видео/аудио потоки, онлайн игры, VoIP`,
+                stages: [
+                    { step: 1, title: 'Отправка дейтаграммы', desc: 'Клиент отправляет пакет БЕЗ соединения', packet: 'UDP Datagram', flow: '→ Server' },
+                    { step: 2, title: 'Получение', desc: 'Сервер получает пакет', packet: 'UDP Packet received', flow: 'Process' },
+                    { step: 3, title: 'Ответ', desc: 'Сервер отправляет ответ (опционально)', packet: 'UDP Response', flow: '← Server' },
+                    { step: 4, title: 'Нет гарантий', desc: 'Пакеты могут быть потеряны или переставлены', packet: 'No ACK needed', flow: 'N/A' }
+                ]
+            }
+        };
+
+        function init() {
+            renderProtocols();
+            document.getElementById('searchBox').addEventListener('input', filterProtocols);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            loadTheme();
+            document.getElementById('detailModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('detailModal')) closeModal();
+            });
+        }
+
+        function renderProtocols() {
+            const list = document.getElementById('protocolsList');
+            list.innerHTML = Object.keys(protocols).map(name => {
+                const p = protocols[name];
+                return `
+                    <div class="protocol-card" onclick="showProtocol('${name}')" data-name="${name.toLowerCase()}">
+                        <div class="protocol-layer">Уровень ${p.layer}</div>
+                        <div class="protocol-name">${name}</div>
+                        <div class="protocol-desc">${p.description}</div>
+                        <div style="margin-top: 0.8rem; font-size: 0.85rem; color: #94a3b8;">Порт: ${p.port}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterProtocols() {
+            const term = document.getElementById('searchBox').value.toLowerCase();
+            document.querySelectorAll('.protocol-card').forEach(card => {
+                card.style.display = card.dataset.name.includes(term) ? '' : 'none';
+            });
+        }
+
+        function showProtocol(name) {
+            const p = protocols[name];
+            document.getElementById('protocolTitle').textContent = name;
+            document.getElementById('protocolMeta').textContent = `Уровень ${p.layer} | Порт: ${p.port}`;
+            document.getElementById('fullDescription').innerHTML = p.fullDescription;
+
+            const stagesContainer = document.getElementById('stagesContainer');
+            stagesContainer.innerHTML = p.stages.map(s => `
+                <div class="stage" onclick="highlightStage(this)">
+                    <div class="stage-number">${s.step}</div>
+                    <div class="stage-title">${s.title}</div>
+                    <div class="stage-desc">${s.desc}</div>
+                    <div class="stage-packet">📦 ${s.packet}</div>
+                    <div class="stage-flow">🔄 ${s.flow}</div>
+                </div>
+            `).join('');
+
+            drawTopology(name);
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function highlightStage(element) {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function drawTopology(protocolName) {
+            const svg = document.getElementById('topologySvg');
+            svg.innerHTML = '';
+
+            if (protocolName === 'HTTP') {
+                svg.innerHTML = createHTTPDiagram();
+            } else if (protocolName === 'TCP') {
+                svg.innerHTML = createTCPDiagram();
+            } else if (protocolName === 'DNS') {
+                svg.innerHTML = createDNSDiagram();
+            } else if (protocolName === 'UDP') {
+                svg.innerHTML = createUDPDiagram();
+            }
+        }
+
+        function createHTTPDiagram() {
+            return `
+                <defs>
+                    <style>
+                        .device { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .server { fill: #fecaca; stroke: #ef4444; stroke-width: 2; }
+                        .network { fill: none; stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 5,5; }
+                        .label { font-family: Arial; font-size: 14px; text-anchor: middle; font-weight: bold; }
+                        .info { font-family: Arial; font-size: 11px; text-anchor: middle; }
+                        .packet-arrow { stroke: #f59e0b; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+                        .response-arrow { stroke: #10b981; stroke-width: 2.5; fill: none; marker-end: url(#arrowgreen); }
+                    </style>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+                    </marker>
+                    <marker id="arrowgreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#10b981" />
+                    </marker>
+                </defs>
+                
+                <rect x="50" y="50" width="900" height="400" class="network" rx="10"/>
+                <text x="500" y="80" class="label" style="font-size: 16px;">HTTP: Запрос-Ответ Архитектура</text>
+                
+                <rect x="50" y="150" width="120" height="80" class="device" rx="8"/>
+                <text x="110" y="190" class="label">Браузер</text>
+                <text x="110" y="210" class="info">192.168.1.10</text>
+                
+                <rect x="350" y="150" width="120" height="80" class="network" rx="8"/>
+                <text x="410" y="190" class="label" style="font-size: 13px;">Маршрутизатор</text>
+                <text x="410" y="210" class="info">Gateway</text>
+                
+                <rect x="700" y="150" width="120" height="80" class="server" rx="8"/>
+                <text x="760" y="190" class="label">Сервер</text>
+                <text x="760" y="210" class="info">203.0.113.5</text>
+                
+                <path d="M 170 200 L 350 200" class="packet-arrow"/>
+                <text x="245" y="185" class="info" fill="#f59e0b">GET /</text>
+                
+                <path d="M 470 200 L 700 200" class="packet-arrow"/>
+                <text x="580" y="185" class="info" fill="#f59e0b">HTTP Request</text>
+                
+                <path d="M 700 250 L 470 250" class="response-arrow"/>
+                <text x="580" y="270" class="info" fill="#10b981">HTTP 200 OK</text>
+                
+                <path d="M 350 250 L 170 250" class="response-arrow"/>
+                <text x="245" y="270" class="info" fill="#10b981">Response</text>
+                
+                <circle cx="210" cy="200" r="6" fill="#f59e0b" class="packet-pulse" style="animation: pulse 1.5s infinite;"/>
+                <circle cx="580" cy="250" r="6" fill="#10b981" class="packet-pulse" style="animation: pulse 1.5s infinite; animation-delay: 0.3s;"/>
+            `;
+        }
+
+        function createTCPDiagram() {
+            return `
+                <defs>
+                    <style>
+                        .host { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .label { font-family: Arial; font-size: 14px; text-anchor: middle; font-weight: bold; }
+                        .step { fill: #c7d2fe; stroke: #6366f1; stroke-width: 2; }
+                        .arrow { stroke: #8b5cf6; stroke-width: 2; fill: none; marker-end: url(#arrowpurple); }
+                    </style>
+                    <marker id="arrowpurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" />
+                    </marker>
+                </defs>
+                
+                <text x="500" y="40" class="label" style="font-size: 16px;">TCP: 3-Way Handshake</text>
+                
+                <rect x="50" y="100" width="120" height="70" class="host" rx="8"/>
+                <text x="110" y="140" class="label">Клиент</text>
+                
+                <rect x="750" y="100" width="120" height="70" class="host" rx="8"/>
+                <text x="810" y="140" class="label">Сервер</text>
+                
+                <rect x="250" y="200" width="400" height="50" class="step" rx="6"/>
+                <text x="450" y="230" class="label" style="font-size: 13px;">1️⃣ SYN (SEQ=1000)</text>
+                <path d="M 170 135 L 250 225" class="arrow"/>
+                
+                <rect x="250" y="280" width="400" height="50" class="step" rx="6"/>
+                <text x="450" y="310" class="label" style="font-size: 13px;">2️⃣ SYN-ACK (SEQ=2000, ACK=1001)</text>
+                <path d="M 750 135 L 650 305" class="arrow"/>
+                
+                <rect x="250" y="360" width="400" height="50" class="step" rx="6"/>
+                <text x="450" y="390" class="label" style="font-size: 13px;">3️⃣ ACK (SEQ=1001, ACK=2001)</text>
+                <path d="M 170 170 L 250 385" class="arrow"/>
+                
+                <rect x="250" y="440" width="400" height="30" fill="none" stroke="#10b981" stroke-width="2" rx="6"/>
+                <text x="450" y="460" class="label" style="fill: #10b981; font-size: 13px;">✅ Соединение установлено!</text>
+            `;
+        }
+
+        function createDNSDiagram() {
+            return `
+                <defs>
+                    <style>
+                        .device { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .server { fill: #fecaca; stroke: #ef4444; stroke-width: 2; }
+                        .label { font-family: Arial; font-size: 12px; text-anchor: middle; font-weight: bold; }
+                        .arrow { stroke: #f59e0b; stroke-width: 2; fill: none; marker-end: url(#arrowyellow); }
+                    </style>
+                    <marker id="arrowyellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#f59e0b" />
+                    </marker>
+                </defs>
+                
+                <text x="500" y="30" class="label" style="font-size: 16px;">DNS: Рекурсивное Разрешение</text>
+                
+                <rect x="30" y="80" width="100" height="60" class="device" rx="8"/>
+                <text x="80" y="115" class="label">Браузер</text>
+                
+                <rect x="200" y="80" width="100" height="60" class="server" rx="8"/>
+                <text x="250" y="110" class="label" style="font-size: 11px;">Резолвер</text>
+                <text x="250" y="125" class="label" style="font-size: 10px;">(ISP DNS)</text>
+                
+                <rect x="370" y="80" width="100" height="60" class="server" rx="8"/>
+                <text x="420" y="115" class="label" style="font-size: 11px;">Root NS</text>
+                
+                <rect x="540" y="80" width="100" height="60" class="server" rx="8"/>
+                <text x="590" y="105" class="label" style="font-size: 11px;">.com TLD</text>
+                <text x="590" y="125" class="label" style="font-size: 10px;">Server</text>
+                
+                <rect x="370" y="200" width="100" height="60" class="server" rx="8"/>
+                <text x="420" y="225" class="label" style="font-size: 11px;">Auth NS</text>
+                <text x="420" y="242" class="label" style="font-size: 10px;">Google</text>
+                
+                <path d="M 130 110 L 200 110" class="arrow"/>
+                <path d="M 300 110 L 370 110" class="arrow"/>
+                <path d="M 470 110 L 540 110" class="arrow"/>
+                <path d="M 420 140 L 420 200" class="arrow"/>
+                <path d="M 370 230 L 300 140" class="arrow"/>
+                <path d="M 200 140 L 130 140" class="arrow"/>
+                
+                <circle cx="130" cy="110" r="4" fill="#f59e0b" class="packet-pulse" style="animation: pulse 1s infinite;"/>
+                <circle cx="80" cy="140" r="4" fill="#10b981" class="packet-pulse" style="animation: pulse 1s infinite; animation-delay: 0.5s;"/>
+            `;
+        }
+
+        function createUDPDiagram() {
+            return `
+                <defs>
+                    <style>
+                        .device { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+                        .label { font-family: Arial; font-size: 14px; text-anchor: middle; font-weight: bold; }
+                        .arrow { stroke: #a78bfa; stroke-width: 2; fill: none; marker-end: url(#arrowpurple); }
+                    </style>
+                    <marker id="arrowpurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#a78bfa" />
+                    </marker>
+                </defs>
+                
+                <text x="500" y="40" class="label" style="font-size: 16px;">UDP: Быстрая Доставка Без Соединения</text>
+                
+                <circle cx="200" cy="200" r="50" class="device"/>
+                <text x="200" y="205" class="label">Клиент</text>
+                
+                <circle cx="800" cy="200" r="50" class="device"/>
+                <text x="800" y="205" class="label">Сервер</text>
+                
+                <path d="M 250 180 L 750 180" class="arrow" stroke-dasharray="5,5"/>
+                <text x="500" y="170" class="label" style="font-size: 12px; fill: #a78bfa;">⚡ UDP Datagram (быстро, БЕЗ соединения)</text>
+                
+                <path d="M 750 220 L 250 220" class="arrow" stroke-dasharray="5,5"/>
+                <text x="500" y="235" class="label" style="font-size: 12px; fill: #a78bfa;">⚡ UDP Response (опционально)</text>
+                
+                <rect x="300" y="320" width="400" height="120" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,3" rx="6"/>
+                <text x="500" y="345" class="label" style="font-size: 13px; fill: #a78bfa;">Характеристики UDP:</text>
+                <text x="310" y="365" class="label" style="text-anchor: start; font-size: 11px; fill: #a78bfa;">• Нет установления соединения</text>
+                <text x="310" y="380" class="label" style="text-anchor: start; font-size: 11px; fill: #a78bfa;">• Низкая задержка (low latency)</text>
+                <text x="310" y="395" class="label" style="text-anchor: start; font-size: 11px; fill: #a78bfa;">• Нет гарантии доставки</text>
+                <text x="310" y="410" class="label" style="text-anchor: start; font-size: 11px; fill: #a78bfa;">• Используется для: DNS, видео, голос, игры</text>
+                
+                <circle cx="300" cy="180" r="5" fill="#a78bfa" class="packet-pulse" style="animation: pulse 1.5s infinite;"/>
+            `;
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️ Светлый' : '🌙 Тёмный';
+        }
+
+        function loadTheme() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️ Светлый';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        @keyframes pulse { 0%, 100% { opacity: 1; r: 5; } 50% { opacity: 0.4; r: 8; } }
+    </script>
+</body>
+</html>
